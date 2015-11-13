@@ -1,11 +1,11 @@
 # run_parallel
 
 A simple and versatile bash function for parallelizing the execution of
-commands or other bash functions. The main features that differentiates it to
-other popular tools for parallelizing are:
+commands or other bash functions. The main features that differentiates it
+from other popular tools for parallelizing are:
 - Bash functions can be parallelized without need to export them.
-- A single output for stdout and stdin that is prepended with the thread name.
-  It can sorted later (unlike xargs) per thread using
+- A single output for stdout and stdin that are prepended with the thread
+  name. They can be sorted later (unlike xargs) per thread using
   _run_parallel_output_sort_ .
 - A license which does not require to cite a paper if used for research
   (unlike GNU parallel).
