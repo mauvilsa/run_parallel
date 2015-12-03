@@ -26,9 +26,10 @@ Description: Executes instances of a command in parallel. In the command
   position, 2) if an argument is '{@}' elements are given in a file and
   '{@}' is replaced by the file path, 3) if an argument is '{<}' elements
   are given through a named pipe, and 4) if no special argument is provided
-  the elements are given through stdin. Only when processing one element at a
-  time: '{.}' without extension, '{/}' without path, '{//}' only path, and
-  '{/.}' without path and extension.
+  the elements are given through stdin. Other replacements only when processing
+  one element at a time are: '{.}' element without extension, '{/}' element
+  without path, '{//}' only path of element, and '{/.}' element without either
+  path or extension.
 Usage: run_parallel [OPTIONS] COMMAND ARG1 ARG2 ... [('{@}'|'{*}'|'{<}') ... '{#}' ... '{%}'] ...
 Options:
  -T THREADS   Concurrent threads, either an int>0, list {id1},{id2},...

@@ -6,6 +6,7 @@
 ##
 ## @version $Revision: 106 $$Date:: 2015-11-27 #$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
+## @link https://github.com/mauvilsa/run_parallel
 ##
 
 ##
