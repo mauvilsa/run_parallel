@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Revision: 84 $$Date:: 2015-11-13 #$
+## @version $Revision: 106 $$Date:: 2015-11-27 #$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ##
 
@@ -33,16 +33,22 @@
 ## 
 
 [ "${BASH_SOURCE[0]}" = "$0" ] && 
-  echo "run_parallel.inc.sh: error: script intended to be sourced" 1>&2 &&
+  echo "run_parallel.inc.sh: error: script intended intended for sourcing, try: . run_parallel.inc.sh" 1>&2 &&
   exit 1;
+
+### Function that prints the version of run_parallel ###
+run_parallel_version () {
+  echo '$Revision: 106 $$Date: 2015-11-27 18:51:10 +0100 (Fri, 27 Nov 2015) $' \
+    | sed 's|^$Revision:|run_parallel: revision|; s| (.*|)|; s|[$][$]Date: |(|;' 1>&2;
+}
 
 ### A fuction for sorting (by thread) the output of run_parallel ###
 run_parallel_output_sort () {
-  cat /dev/stdin \
-    | awk '{ count[$1]++;
-             printf( "%d %s\n", count[$1], $0 );
-           }' \
-    | sort -k 2n,2 -k 1n,1 \
+  local SRT=""; [ $# -gt 0 ] && SRT="$1";
+  awk '{ count[$1]++;
+         printf( "%d %s\n", count[$1], $0 );
+       }' \
+    | sort -k 2${SRT},2 -k 1n,1 \
     | sed 's|^[0-9][0-9]* ||';
 }
 
@@ -65,9 +71,10 @@ run_parallel () {(
       echo "  position, 2) if an argument is '{@}' elements are given in a file and";
       echo "  '{@}' is replaced by the file path, 3) if an argument is '{<}' elements";
       echo "  are given through a named pipe, and 4) if no special argument is provided";
-      echo "  the elements are given through stdin. Only when processing one element at a";
-      echo "  time: '{.}' without extension, '{/}' without path, '{//}' only path, and";
-      echo "  '{/.}' without path and extension.";
+      echo "  the elements are given through stdin. Other replacements only when processing";
+      echo "  one element at a time are: '{.}' element without extension, '{/}' element";
+      echo "  without path, '{//}' only path of element, and '{/.}' element without either";
+      echo "  path or extension.";
       echo "Usage: $FN [OPTIONS] COMMAND ARG1 ARG2 ... [('{@}'|'{*}'|'{<}') ... '{#}' ... '{%}'] ...";
       echo "Options:";
       echo " -T THREADS   Concurrent threads, either an int>0, list {id1},{id2},...";
@@ -149,8 +156,10 @@ run_parallel () {(
     echo "$FN: error: failed to write to temporal directory: $TMP" 1>&2 &&
     return 1;
   local FSTYPE=$( df -PT "$TMP" | sed -n '2{ s|^[^ ]* *||; s| .*||; p; }' );
-  ( [ "$FSTYPE" = "nfs" ] || [[ "$FSTYPE" == *sshfs* ]] ) &&
-    echo "$FN: error: temporal directory should be on a local file system: $FSTYPE" 1>&2 &&
+  ( [ "$FSTYPE" = "nfs" ] ||
+    [ "$FSTYPE" = "lustre" ] ||
+    [[ "$FSTYPE" == *sshfs* ]] ) &&
+    echo "$FN: error: temporal directory should be on a local file system: ${TMPDIR:-.} -> $FSTYPE" 1>&2 &&
     return 1;
 
   ### Prepare command ###
@@ -158,6 +167,7 @@ run_parallel () {(
   local ARGPOS="0";
   local PIPEPOS="0";
   local FILEPOS="0";
+  local OTHERARG="0";
   local n;
   for n in $(seq 1 $(($#-1))); do
     if [ "${PROTO[n]}" = "{*}" ]; then
@@ -166,6 +176,12 @@ run_parallel () {(
       [ "$LIST" != "" ] && PIPEPOS=$n;
     elif [ "${PROTO[n]}" = "{@}" ]; then
       [ "$LIST" != "" ] && FILEPOS=$n;
+    elif [[ "${PROTO[n]}" = *"{*}"* ]] ||
+         [[ "${PROTO[n]}" = *"{.}"* ]] ||
+         [[ "${PROTO[n]}" = *"{/}"* ]] ||
+         [[ "${PROTO[n]}" = *"{//}"* ]] ||
+         [[ "${PROTO[n]}" = *"{/.}"* ]]; then
+      [ "$LIST" != "" ] && OTHERARG=$n;
     elif [ -p "${PROTO[n]}" ]; then
       p=$(ls "$TMP/pipe"* 2>/dev/null | wc -l);
       cat "${PROTO[n]}" > "$TMP/pipe$p";
@@ -182,9 +198,9 @@ run_parallel () {(
     [ "$LIST" = "-" ] && LIST="/dev/stdin";
     if [ -e "$LIST" ]; then
       exec {LISTFD}< "$LIST";
-    elif [[ "$LIST" == *,* ]]; then
+    elif [[ "$LIST" = *,* ]]; then
       exec {LISTFD}< <( echo "$LIST" | tr ',' '\n' );
-    elif [[ "$LIST" == *:* ]]; then
+    elif [[ "$LIST" = *:* ]]; then
       exec {LISTFD}< <( seq ${LIST//:/ } );
     else
       echo "$FN: error: unexpected list: $LIST" 1>&2;
@@ -325,46 +341,44 @@ run_parallel () {(
       [ "$?" != 0 ] &&
         echo "listdone" >> "$TMP/state" &&
         break;
-      echo "$line";
+      LISTP+=( "$line" );
     done
   }
 
   ### Run threads ###
   runcmd () {
-    local LISTP="";
+    local LISTP=();
     local THREAD="$1";
     local NUMP="$2";
     local CMD=("${PROTO[@]//\{\%\}/$THREAD}");
     CMD=("${CMD[@]//\{\#\}/$NUMP}");
     if [ "$LIST" != "" ]; then
-      LISTP=$( readlist );
-      [ "$LISTP" = "" ] && return 0;
+      readlist;
+      [ "${#LISTP[@]}" = 0 ] && return 0;
       if [ "$NUMELEM" = 1 ]; then
-        CMD=("${CMD[@]//\{\*\}/$LISTP}");
-        local MLISTP=$(echo "$LISTP" | sed 's|\.[^.]*$||');
+        CMD=("${CMD[@]//\{\*\}/$LISTP}"); # {*} whole element
+        local MLISTP=$(echo "$LISTP" | sed 's|\.[^./]*$||');
         CMD=("${CMD[@]//\{\.\}/$MLISTP}"); # {.} no extension
         MLISTP=$(echo "$LISTP" | sed 's|.*/||');
-        CMD=("${CMD[@]//\{\/\}/$MLISTP}"); # {/} no path
+        CMD=("${CMD[@]//\{\/\}/$MLISTP}"); # {/} no dir
         MLISTP=$(echo "$LISTP" | sed 's|/[^/]*$||');
-        CMD=("${CMD[@]//\{\/\/\}/$MLISTP}"); # {//} only path
+        CMD=("${CMD[@]//\{\/\/\}/$MLISTP}"); # {//} only dir
         MLISTP=$(echo "$LISTP" | sed 's|.*/||; s|\.[^.]*$||;');
-        CMD=("${CMD[@]//\{\/\.\}/$MLISTP}"); # {/.} no path and extension
+        CMD=("${CMD[@]//\{\/\.\}/$MLISTP}"); # {/.} basename
       fi
     fi
     echo "THREAD:$THREAD:$NUMP starting" >> "$TMP/state";
     { if [ "$ARGPOS" != 0 ]; then
-        eval LISTP=\( $( echo "$LISTP" \
-          | sed 's|\x27|\\\\x27|g; s|^|$\x27|; s|$|\x27|;' ) \);
         "${CMD[@]:0:$ARGPOS}" "${LISTP[@]}" "${CMD[@]:$((ARGPOS+1))}";
       elif [ "$PIPEPOS" != 0 ]; then
-        "${CMD[@]:0:$PIPEPOS}" <( echo "$LISTP" ) "${CMD[@]:$((PIPEPOS+1))}";
+        "${CMD[@]:0:$PIPEPOS}" <( printf '%s\n' "${LISTP[@]}" ) "${CMD[@]:$((PIPEPOS+1))}";
       elif [ "$FILEPOS" != 0 ]; then
-        echo "$LISTP" > "$TMP/list_$NUMP";
+        printf '%s\n' "${LISTP[@]}" > "$TMP/list_$NUMP";
         "${CMD[@]:0:$FILEPOS}" "$TMP/list_$NUMP" "${CMD[@]:$((FILEPOS+1))}";
-      elif [ "$NLIST" != 0 ]; then
-        echo "$LISTP" | "${CMD[@]}";
-      else
+      elif [ "$OTHERARG" != 0 ] || [ "$NLIST" = 0 ]; then
         "${CMD[@]}";
+      else
+        echo "$LISTP" | "${CMD[@]}";
       fi
       local RC="$?";
       [ "$RC" != 0 ] && echo "THREAD:$THREAD:$NUMP $RC failed" >> "$TMP/state";
