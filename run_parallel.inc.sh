@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Revision: 106 $$Date:: 2015-11-27 #$
+## @version $Revision: 122 $$Date:: 2016-02-01 #$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
 ##
@@ -39,7 +39,7 @@
 
 ### Function that prints the version of run_parallel ###
 run_parallel_version () {
-  echo '$Revision: 106 $$Date: 2015-11-27 18:51:10 +0100 (Fri, 27 Nov 2015) $' \
+  echo '$Revision: 122 $$Date: 2016-02-01 20:57:28 +0100 (Mon, 01 Feb 2016) $' \
     | sed 's|^$Revision:|run_parallel: revision|; s| (.*|)|; s|[$][$]Date: |(|;' 1>&2;
 }
 
@@ -84,7 +84,7 @@ run_parallel () {(
       echo "              {el1},{el2},... or range {#ini}:[{#inc}:]{#end} (def.=none)";
       echo " -n NUMELEM   Elements per instance, either an int>0, 'split' or 'balance' (def.=$NUMELEM)";
       echo " -k (yes|no)  Whether to keep temporal files (def.=$KEEPTMP)";
-      echo " -d TMPDIR   Use given directory for temporal files, also sets -k yes (def.=false)";
+      echo " -d TMPDIR    Use given directory for temporal files, also sets -k yes (def.=false)";
       echo "Environment variables:";
       echo "  TMPDIR      Directory for temporal files, must exist (def.=.)";
       echo "  TMPRND      ID for unique temporal files (def.=rand)";
@@ -144,7 +144,7 @@ run_parallel () {(
   if [ "$TMP" != "" ]; then
     KEEPTMP="yes";
   else
-    TMP="${TMPDIR:-.}";
+    TMP="${TMPDIR:-/tmp}";
     local RND="${TMPRND:-}";
     if [ "$RND" = "" ]; then
       TMP=$(mktemp -d --tmpdir="$TMP" ${FN}_XXXXX);
@@ -160,7 +160,7 @@ run_parallel () {(
   ( [ "$FSTYPE" = "nfs" ] ||
     [ "$FSTYPE" = "lustre" ] ||
     [[ "$FSTYPE" == *sshfs* ]] ) &&
-    echo "$FN: error: temporal directory should be on a local file system: ${TMPDIR:-.} -> $FSTYPE" 1>&2 &&
+    echo "$FN: error: temporal directory should be on a local file system: $TMP -> $FSTYPE" 1>&2 &&
     return 1;
 
   ### Prepare command ###
