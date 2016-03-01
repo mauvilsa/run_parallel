@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Revision: 122 $$Date:: 2016-02-01 #$
+## @version $Revision: 130 $$Date:: 2016-03-01 #$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
 ##
@@ -39,7 +39,7 @@
 
 ### Function that prints the version of run_parallel ###
 run_parallel_version () {
-  echo '$Revision: 122 $$Date: 2016-02-01 20:57:28 +0100 (Mon, 01 Feb 2016) $' \
+  echo '$Revision: 130 $$Date: 2016-03-01 10:06:50 +0100 (Tue, 01 Mar 2016) $' \
     | sed 's|^$Revision:|run_parallel: revision|; s| (.*|)|; s|[$][$]Date: |(|;' 1>&2;
 }
 
@@ -183,7 +183,9 @@ run_parallel () {(
          [[ "${PROTO[n]}" = *"{//}"* ]] ||
          [[ "${PROTO[n]}" = *"{/.}"* ]]; then
       [ "$LIST" != "" ] && OTHERARG=$n;
-    elif [ -p "${PROTO[n]}" ]; then
+    # Testing /dev/fd/ due to pipe check bug in CentOS bash 4.1.2(1)-release
+    elif [ -p "${PROTO[n]}" ] ||
+         [ $(echo "${PROTO[n]}" | grep -c '^/dev/fd/') != 0 ]; then
       p=$(ls "$TMP/pipe"* 2>/dev/null | wc -l);
       cat "${PROTO[n]}" > "$TMP/pipe$p";
       PROTO[n]="$TMP/pipe$p";
