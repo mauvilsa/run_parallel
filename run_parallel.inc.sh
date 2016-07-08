@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Revision: 130 $$Date:: 2016-03-01 #$
+## @version $Revision: 144 $$Date:: 2016-07-08 #$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
 ##
@@ -39,7 +39,7 @@
 
 ### Function that prints the version of run_parallel ###
 run_parallel_version () {
-  echo '$Revision: 130 $$Date: 2016-03-01 10:06:50 +0100 (Tue, 01 Mar 2016) $' \
+  echo '$Revision: 144 $$Date: 2016-07-08 07:48:16 +0200 (Fri, 08 Jul 2016) $' \
     | sed 's|^$Revision:|run_parallel: revision|; s| (.*|)|; s|[$][$]Date: |(|;' 1>&2;
 }
 
@@ -325,7 +325,7 @@ run_parallel () {(
     [ "$NTHREADS" != 0 ] && grep '^THREAD:.* failed$' "$TMP/state" 1>&2;
     [ "$LISTFD" != "" ] && exec {LISTFD}>&-;
     exec {ENDFD}>&-;
-    [ "$KEEPTMP" != "yes" ] && rm -r "$TMP";
+    [ "$KEEPTMP" != "yes" ] && [ "$NTHREADS" = 0 ] && rm -r "$TMP";
     cleanup () { return 0; };
   }
 
