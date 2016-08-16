@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Revision: 130 $$Date:: 2016-03-01 #$
+## @version $Revision: 146 $$Date:: 2016-07-29 #$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
 ##
@@ -31,15 +31,15 @@
 ## LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 ## OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ## SOFTWARE.
-## 
+##
 
-[ "${BASH_SOURCE[0]}" = "$0" ] && 
+[ "${BASH_SOURCE[0]}" = "$0" ] &&
   echo "run_parallel.inc.sh: error: script intended intended for sourcing, try: . run_parallel.inc.sh" 1>&2 &&
   exit 1;
 
 ### Function that prints the version of run_parallel ###
 run_parallel_version () {
-  echo '$Revision: 130 $$Date: 2016-03-01 10:06:50 +0100 (Tue, 01 Mar 2016) $' \
+  echo '$Revision: 146 $$Date: 2016-07-29 11:35:58 +0200 (Fri, 29 Jul 2016) $' \
     | sed 's|^$Revision:|run_parallel: revision|; s| (.*|)|; s|[$][$]Date: |(|;' 1>&2;
 }
 
@@ -55,14 +55,14 @@ run_parallel_output_sort () {
 
 ### The fuction for parallel execution ###
 run_parallel () {(
-  local FN="run_parallel";
-  local THREADS="1";
-  local LIST="";
-  local NUMELEM="1";
-  local KEEPTMP="no";
-  local TMP="";
+  local _rp_FN="run_parallel";
+  local _rp_THREADS="1";
+  local _rp_LIST="";
+  local _rp_NUMELEM="1";
+  local _rp_KEEPTMP="no";
+  local _rp_TMP="";
   if [ $# -lt 2 ]; then
-    { echo "$FN: Error: Not enough input arguments";
+    { echo "$_rp_FN: Error: Not enough input arguments";
       echo "Description: Executes instances of a command in parallel. In the command";
       echo "  arguments, '{#}' is replaced by the command instance number (1, 2, ...)";
       echo "  and '{%}' is replaced by the thread ID (see options). The thread ID is";
@@ -76,17 +76,17 @@ run_parallel () {(
       echo "  one element at a time are: '{.}' element without extension, '{/}' element";
       echo "  without path, '{//}' only path of element, and '{/.}' element without either";
       echo "  path or extension.";
-      echo "Usage: $FN [OPTIONS] COMMAND ARG1 ARG2 ... [('{@}'|'{*}'|'{<}') ... '{#}' ... '{%}'] ...";
+      echo "Usage: $_rp_FN [OPTIONS] COMMAND ARG1 ARG2 ... [('{@}'|'{*}'|'{<}') ... '{#}' ... '{%}'] ...";
       echo "Options:";
       echo " -T THREADS   Concurrent threads, either an int>0, list {id1},{id2},...";
-      echo "              or range {#ini}:[{#inc}:]{#end} (def.=$THREADS)";
+      echo "              or range {#ini}:[{#inc}:]{#end} (def.=$_rp_THREADS)";
       echo " -l LIST      List of elements to process, either a file (- is stdin), list";
       echo "              {el1},{el2},... or range {#ini}:[{#inc}:]{#end} (def.=none)";
-      echo " -n NUMELEM   Elements per instance, either an int>0, 'split' or 'balance' (def.=$NUMELEM)";
-      echo " -k (yes|no)  Whether to keep temporal files (def.=$KEEPTMP)";
+      echo " -n NUMELEM   Elements per instance, either an int>0, 'split' or 'balance' (def.=$_rp_NUMELEM)";
+      echo " -k (yes|no)  Whether to keep temporal files (def.=$_rp_KEEPTMP)";
       echo " -d TMPDIR    Use given directory for temporal files, also sets -k yes (def.=false)";
       echo "Environment variables:";
-      echo "  TMPDIR      Directory for temporal files, must exist (def.=.)";
+      echo "  TMPDIR      Directory for temporal files, must exist (def.=/tmp)";
       echo "  TMPRND      ID for unique temporal files (def.=rand)";
       echo "Dummy examples:"
       echo "  $ myfunc () {";
@@ -95,11 +95,11 @@ run_parallel () {(
       echo "      ITEMS=\$( echo \$( < \$2 ) );";
       echo "      echo \"\$1: processed \$NUM items (\$ITEMS)\";";
       echo "    }";
-      echo "  $ seq 1 100 | $FN -T A,B,C -n balance -l - myfunc 'Thread {%} instance {#}' '{@}'";
-      echo "  $ seq 1 100 | $FN -T 4 -n 7 -l - myfunc 'Thread {%} instance {#}' '{@}'";
+      echo "  $ seq 1 100 | $_rp_FN -T A,B,C -n balance -l - myfunc 'Thread {%} instance {#}' '{@}'";
+      echo "  $ seq 1 100 | $_rp_FN -T 4 -n 7 -l - myfunc 'Thread {%} instance {#}' '{@}'";
       echo "  $ myfunc () { echo \"Processing file \$1\"; }";
-      echo "  $ $FN -T 5 myfunc 'input_{%}.txt'";
-      echo "  $ $FN -T 2:3:9 myfunc 'input_{%}.txt'";
+      echo "  $ $_rp_FN -T 5 myfunc 'input_{%}.txt'";
+      echo "  $ $_rp_FN -T 2:3:9 myfunc 'input_{%}.txt'";
     } 1>&2;
     return 1;
   fi
@@ -109,115 +109,115 @@ run_parallel () {(
     if [ "${1:0:1}" != "-" ]; then
       break;
     elif [ "$1" = "-T" ]; then
-      THREADS="$2";
+      _rp_THREADS="$2";
     elif [ "$1" = "-l" ]; then
-      LIST="$2";
+      _rp_LIST="$2";
     elif [ "$1" = "-n" ]; then
-      NUMELEM="$2";
+      _rp_NUMELEM="$2";
     elif [ "$1" = "-k" ]; then
-      KEEPTMP="$2";
+      _rp_KEEPTMP="$2";
     elif [ "$1" = "-d" ]; then
-      TMP="$2";
+      _rp_TMP="$2";
     else
-      echo "$FN: error: unexpected input argument: $1" 1>&2;
+      echo "$_rp_FN: error: unexpected input argument: $1" 1>&2;
       return 1;
     fi
     shift 2;
   done
 
-  if [ "$THREADS" = "" ]; then
-    THREADS=( $(seq 1 $(nproc)) );
-  elif [[ "$THREADS" == *,* ]]; then
-    THREADS=( ${THREADS//,/ } );
-  elif [[ "$THREADS" == *:* ]]; then
-    THREADS=( $(seq ${THREADS//:/ }) );
+  if [ "$_rp_THREADS" = "" ]; then
+    _rp_THREADS=( $(seq 1 $(nproc)) );
+  elif [[ "$_rp_THREADS" == *,* ]]; then
+    _rp_THREADS=( ${_rp_THREADS//,/ } );
+  elif [[ "$_rp_THREADS" == *:* ]]; then
+    _rp_THREADS=( $(seq ${_rp_THREADS//:/ }) );
   else
-    THREADS=( $(seq 1 $THREADS) );
+    _rp_THREADS=( $(seq 1 $_rp_THREADS) );
   fi
-  local NTHREADS=${#THREADS[@]};
-  local TOTP="$NTHREADS";
-  [ "$NTHREADS" -le 0 ] &&
-    echo "$FN: error: unexpected number of threads" 1>&2 &&
+  local _rp_NTHREADS=${#_rp_THREADS[@]};
+  local _rp_TOTP="$_rp_NTHREADS";
+  [ "$_rp_NTHREADS" -le 0 ] &&
+    echo "$_rp_FN: error: unexpected number of threads" 1>&2 &&
     return 1;
 
   ### Create temporal directory ###
-  if [ "$TMP" != "" ]; then
-    KEEPTMP="yes";
+  if [ "$_rp_TMP" != "" ]; then
+    _rp_KEEPTMP="yes";
   else
-    TMP="${TMPDIR:-/tmp}";
-    local RND="${TMPRND:-}";
-    if [ "$RND" = "" ]; then
-      TMP=$(mktemp -d --tmpdir="$TMP" ${FN}_XXXXX);
+    _rp_TMP="${TMPDIR:-/tmp}";
+    local _rp_RND="${TMPRND:-}";
+    if [ "$_rp_RND" = "" ]; then
+      _rp_TMP=$(mktemp -d --tmpdir="$_rp_TMP" ${_rp_FN}_XXXXX);
     else
-      TMP="$TMP/${FN}_$RND";
-      mkdir "$TMP";
+      _rp_TMP="$_rp_TMP/${_rp_FN}_$_rp_RND";
+      mkdir "$_rp_TMP";
     fi
   fi
-  [ ! -d "$TMP" ] &&
-    echo "$FN: error: failed to write to temporal directory: $TMP" 1>&2 &&
+  [ ! -d "$_rp_TMP" ] &&
+    echo "$_rp_FN: error: failed to write to temporal directory: $_rp_TMP" 1>&2 &&
     return 1;
-  local FSTYPE=$( df -PT "$TMP" | sed -n '2{ s|^[^ ]* *||; s| .*||; p; }' );
-  ( [ "$FSTYPE" = "nfs" ] ||
-    [ "$FSTYPE" = "lustre" ] ||
-    [[ "$FSTYPE" == *sshfs* ]] ) &&
-    echo "$FN: error: temporal directory should be on a local file system: $TMP -> $FSTYPE" 1>&2 &&
+  local _rp_FSTYPE=$( df -PT "$_rp_TMP" | sed -n '2{ s|^[^ ]* *||; s| .*||; p; }' );
+  ( [ "$_rp_FSTYPE" = "nfs" ] ||
+    [ "$_rp_FSTYPE" = "lustre" ] ||
+    [[ "$_rp_FSTYPE" == *sshfs* ]] ) &&
+    echo "$_rp_FN: error: temporal directory should be on a local file system: $_rp_TMP -> $_rp_FSTYPE" 1>&2 &&
     return 1;
 
   ### Prepare command ###
-  local PROTO=("$@");
-  local ARGPOS="0";
-  local PIPEPOS="0";
-  local FILEPOS="0";
-  local OTHERARG="0";
-  local n;
-  for n in $(seq 1 $(($#-1))); do
-    if [ "${PROTO[n]}" = "{*}" ]; then
-      [ "$LIST" != "" ] && ARGPOS=$n;
-    elif [ "${PROTO[n]}" = "{<}" ]; then
-      [ "$LIST" != "" ] && PIPEPOS=$n;
-    elif [ "${PROTO[n]}" = "{@}" ]; then
-      [ "$LIST" != "" ] && FILEPOS=$n;
-    elif [[ "${PROTO[n]}" = *"{*}"* ]] ||
-         [[ "${PROTO[n]}" = *"{.}"* ]] ||
-         [[ "${PROTO[n]}" = *"{/}"* ]] ||
-         [[ "${PROTO[n]}" = *"{//}"* ]] ||
-         [[ "${PROTO[n]}" = *"{/.}"* ]]; then
-      [ "$LIST" != "" ] && OTHERARG=$n;
+  local _rp_PROTO=("$@");
+  local _rp_ARGPOS="0";
+  local _rp_PIPEPOS="0";
+  local _rp_FILEPOS="0";
+  local _rp_OTHERARG="0";
+  local _rp_n;
+  for _rp_n in $(seq 1 $(($#-1))); do
+    if [ "${_rp_PROTO[_rp_n]}" = "{*}" ]; then
+      [ "$_rp_LIST" != "" ] && _rp_ARGPOS=$_rp_n;
+    elif [ "${_rp_PROTO[_rp_n]}" = "{<}" ]; then
+      [ "$_rp_LIST" != "" ] && _rp_PIPEPOS=$_rp_n;
+    elif [ "${_rp_PROTO[_rp_n]}" = "{@}" ]; then
+      [ "$_rp_LIST" != "" ] && _rp_FILEPOS=$_rp_n;
+    elif [[ "${_rp_PROTO[_rp_n]}" = *"{*}"* ]] ||
+         [[ "${_rp_PROTO[_rp_n]}" = *"{.}"* ]] ||
+         [[ "${_rp_PROTO[_rp_n]}" = *"{/}"* ]] ||
+         [[ "${_rp_PROTO[_rp_n]}" = *"{//}"* ]] ||
+         [[ "${_rp_PROTO[_rp_n]}" = *"{/.}"* ]]; then
+      [ "$_rp_LIST" != "" ] && _rp_OTHERARG=$_rp_n;
     # Testing /dev/fd/ due to pipe check bug in CentOS bash 4.1.2(1)-release
-    elif [ -p "${PROTO[n]}" ] ||
-         [ $(echo "${PROTO[n]}" | grep -c '^/dev/fd/') != 0 ]; then
-      p=$(ls "$TMP/pipe"* 2>/dev/null | wc -l);
-      cat "${PROTO[n]}" > "$TMP/pipe$p";
-      PROTO[n]="$TMP/pipe$p";
+    elif [ -p "${_rp_PROTO[_rp_n]}" ] ||
+         [ $(echo "${_rp_PROTO[_rp_n]}" | grep -c '^/dev/fd/') != 0 ]; then
+      local _rp_p=$(ls "$_rp_TMP/pipe"* 2>/dev/null | wc -l);
+      cat "${_rp_PROTO[_rp_n]}" > "$_rp_TMP/pipe$_rp_p";
+      _rp_PROTO[_rp_n]="$_rp_TMP/pipe$_rp_p";
     fi
   done
-  echo "${PROTO[@]}" > "$TMP/state";
+  echo "${_rp_PROTO[@]}" > "$_rp_TMP/state";
 
   ### Prepare list ###
-  local LISTFD="";
-  local NLIST="";
-  if [ "$LIST" != "" ]; then
-    TOTP="-1";
-    [ "$LIST" = "-" ] && LIST="/dev/stdin";
-    if [ -e "$LIST" ]; then
-      exec {LISTFD}< "$LIST";
-    elif [[ "$LIST" = *,* ]]; then
-      exec {LISTFD}< <( echo "$LIST" | tr ',' '\n' );
-    elif [[ "$LIST" = *:* ]]; then
-      exec {LISTFD}< <( seq ${LIST//:/ } );
+  local _rp_LISTFD="";
+  local _rp_NLIST="";
+  if [ "$_rp_LIST" != "" ]; then
+    _rp_TOTP="-1";
+    [ "$_rp_LIST" = "-" ] && _rp_LIST="/dev/stdin";
+    if [ -e "$_rp_LIST" ]; then
+      exec {_rp_LISTFD}< "$_rp_LIST";
+    elif [[ "$_rp_LIST" = *,* ]]; then
+      exec {_rp_LISTFD}< <( echo "$_rp_LIST" | tr ',' '\n' );
+    elif [[ "$_rp_LIST" = *:* ]]; then
+      exec {_rp_LISTFD}< <( seq ${_rp_LIST//:/ } );
     else
-      echo "$FN: error: unexpected list: $LIST" 1>&2;
-      [ "$KEEPTMP" != "yes" ] && rm -r "$TMP";
+      echo "$_rp_FN: error: unexpected list: $_rp_LIST" 1>&2;
+      [ "$_rp_KEEPTMP" != "yes" ] && rm -r "$_rp_TMP";
       return 1;
     fi
 
-    if [ "$NUMELEM" = "balance" ] || [ "$NUMELEM" = "split" ]; then
-      NLIST=$( tee "$TMP/list" <&$LISTFD | wc -l );
-      exec {LISTFD}>&-;
-      exec {LISTFD}< "$TMP/list";
+    if [ "$_rp_NUMELEM" = "balance" ] || [ "$_rp_NUMELEM" = "split" ]; then
+      _rp_NLIST=$( tee "$_rp_TMP/list" <&$_rp_LISTFD | wc -l );
+      exec {_rp_LISTFD}>&-;
+      exec {_rp_LISTFD}< "$_rp_TMP/list";
 
-      [ "$NUMELEM" = "balance" ] &&
-      NLIST=( $( awk -v fact0=0.5 -v NTHREADS="$NTHREADS" -v NLIST="$NLIST" '
+      [ "$_rp_NUMELEM" = "balance" ] &&
+      _rp_NLIST=( $( awk -v fact0=0.5 -v NTHREADS="$_rp_NTHREADS" -v NLIST="$_rp_NLIST" '
         BEGIN {
           if ( NTHREADS == 1 )
             printf( " %d", NLIST );
@@ -248,8 +248,8 @@ run_parallel () {(
           }
         }' ) );
 
-      [ "$NUMELEM" = "split" ] &&
-      NLIST=( $( awk -v NTHREADS="$NTHREADS" -v NLIST="$NLIST" '
+      [ "$_rp_NUMELEM" = "split" ] &&
+      _rp_NLIST=( $( awk -v NTHREADS="$_rp_NTHREADS" -v NLIST="$_rp_NLIST" '
         BEGIN {
           if ( NTHREADS == 1 )
             printf( " %d", NLIST );
@@ -274,138 +274,139 @@ run_parallel () {(
           }
         }' ) );
 
-    elif [[ ! "$NUMELEM" =~ ^[0-9]+$ ]]; then
-      echo "$FN: error: unexpected number of elements: $NUMELEM" 1>&2;
-      [ "$KEEPTMP" != "yes" ] && rm -r "$TMP";
+    elif [[ ! "$_rp_NUMELEM" =~ ^[0-9]+$ ]]; then
+      echo "$_rp_FN: error: unexpected number of elements: $_rp_NUMELEM" 1>&2;
+      [ "$_rp_KEEPTMP" != "yes" ] && rm -r "$_rp_TMP";
       return 1;
     fi
   fi
 
   ### Join thread logs prepending IDs to each line ###
-  local PROC_LOGS="/::$FN::/q;"' :loop;
+  local _rp_PROC_LOGS="/::$_rp_FN::/q;"' :loop;
     /^$/ { N; /\n==> .* <==$/! { G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; P; }; D; b loop; };
     /^==> .* <==$/ { s|^==> .*/[oe][ur][tr]_\([^ ]*\) <==$|\1\t|; h; d; };
     G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; p;';
 
-  local THREAD;
-  for THREAD in "${THREADS[@]}"; do
-    #mkfifo "$TMP/out_$THREAD" "$TMP/err_$THREAD"; # for many threads hangs in >> "$TMP/out_$THREAD"; why?
-    > "$TMP/out_$THREAD"; > "$TMP/err_$THREAD";
+  local _rp_THREAD;
+  for _rp_THREAD in "${_rp_THREADS[@]}"; do
+    #mkfifo "$_rp_TMP/out_$_rp_THREAD" "$_rp_TMP/err_$_rp_THREAD"; # for many threads hangs in >> "$_rp_TMP/out_$_rp_THREAD"; why?
+    > "$_rp_TMP/out_$_rp_THREAD"; > "$_rp_TMP/err_$_rp_THREAD";
   done
-  mkfifo "$TMP/out" "$TMP/err";
-  local SEDPID;
-  sed -un "$PROC_LOGS" < "$TMP/out"      & SEDPID[0]="$!";
-  tail --pid=${SEDPID[0]} -f "$TMP"/out_* > "$TMP/out" &
-  sed -un "$PROC_LOGS" < "$TMP/err" 1>&2 & SEDPID[1]="$!";
-  tail --pid=${SEDPID[1]} -f "$TMP"/err_* > "$TMP/err" &
-  #for THREAD in "${THREADS[@]}"; do
-  #  >> "$TMP/out_$THREAD";
-  #  >> "$TMP/err_$THREAD";
+  mkfifo "$_rp_TMP/out" "$_rp_TMP/err";
+  local _rp_SEDPID;
+  sed -un "$_rp_PROC_LOGS" < "$_rp_TMP/out"      & _rp_SEDPID[0]="$!";
+  tail --pid=${_rp_SEDPID[0]} -f "$_rp_TMP"/out_* > "$_rp_TMP/out" &
+  sed -un "$_rp_PROC_LOGS" < "$_rp_TMP/err" 1>&2 & _rp_SEDPID[1]="$!";
+  tail --pid=${_rp_SEDPID[1]} -f "$_rp_TMP"/err_* > "$_rp_TMP/err" &
+  #for _rp_THREAD in "${_rp_THREADS[@]}"; do
+  #  >> "$_rp_TMP/out_$_rp_THREAD";
+  #  >> "$_rp_TMP/err_$_rp_THREAD";
   #done
 
-  local ENDFD;
-  exec {ENDFD}< <( tail --pid=${SEDPID[0]} -f "$TMP/state" | grep --line-buffered ' ended$' );
+  local _rp_ENDFD;
+  exec {_rp_ENDFD}< <( tail --pid=${_rp_SEDPID[0]} -f "$_rp_TMP/state" | grep --line-buffered ' ended$' );
 
   ### Cleanup function ###
-  trap cleanup INT;
-  cleanup () {
-    echo "::$FN::" >> "$TMP/out_${THREADS[0]}";
-    echo "::$FN::" >> "$TMP/err_${THREADS[0]}";
-    local SLEEP="0.01";
-    for n in $(seq 1 10); do
-      ( ! ( ps -p "${SEDPID[0]}" || ps -p "${SEDPID[1]}" ) >/dev/null ) && break;
-      sleep "$SLEEP";
-      SLEEP=$(echo "$SLEEP+$SLEEP" | bc -l);
+  trap _rp_cleanup INT;
+  _rp_cleanup () {
+    echo "::$_rp_FN::" >> "$_rp_TMP/out_${_rp_THREADS[0]}";
+    echo "::$_rp_FN::" >> "$_rp_TMP/err_${_rp_THREADS[0]}";
+    local _rp_SLEEP="0.01";
+    for _rp_n in $(seq 1 10); do
+      ( ! ( ps -p "${_rp_SEDPID[0]}" || ps -p "${_rp_SEDPID[1]}" ) >/dev/null ) && break;
+      sleep "$_rp_SLEEP";
+      _rp_SLEEP=$(echo "$_rp_SLEEP+$_rp_SLEEP" | bc -l);
     done
-    ( ps -p "${SEDPID[0]}" || ps -p "${SEDPID[1]}" ) >/dev/null && 
-      kill ${SEDPID[@]} 2>/dev/null;
+    ( ps -p "${_rp_SEDPID[0]}" || ps -p "${_rp_SEDPID[1]}" ) >/dev/null && 
+      kill ${_rp_SEDPID[@]} 2>/dev/null;
     #[ $(uname) = "Darwin" ] &&
-    #  echo "$FN: warning: on OS X output may be incomplete" 1>&2;
-    NTHREADS=$(grep -c '^THREAD:.* failed$' "$TMP/state");
-    [ "$NTHREADS" != 0 ] && grep '^THREAD:.* failed$' "$TMP/state" 1>&2;
-    [ "$LISTFD" != "" ] && exec {LISTFD}>&-;
-    exec {ENDFD}>&-;
-    [ "$KEEPTMP" != "yes" ] && rm -r "$TMP";
-    cleanup () { return 0; };
+    #  echo "$_rp_FN: warning: on OS X output may be incomplete" 1>&2;
+    _rp_NTHREADS=$(grep -c '^THREAD:.* failed$' "$_rp_TMP/state");
+    [ "$_rp_NTHREADS" != 0 ] && grep '^THREAD:.* failed$' "$_rp_TMP/state" 1>&2;
+    [ "$_rp_LISTFD" != "" ] && exec {_rp_LISTFD}>&-;
+    exec {_rp_ENDFD}>&-;
+    [ "$_rp_KEEPTMP" != "yes" ] && [ "$_rp_NTHREADS" = 0 ] && rm -r "$_rp_TMP";
+    _rp_cleanup () { return 0; };
   }
 
   ### Function to read elements from the list ###
-  readlist () {
-    local NUM="$NUMELEM";
-    if [ "$NUM" = "balance" ] || [ "$NUM" = "split" ]; then
-      [ "$NUMP" -gt "${#NLIST[@]}" ] &&
-        echo "listdone" >> "$TMP/state" &&
+  _rp_readlist () {
+    local _rp_NUM="$_rp_NUMELEM";
+    if [ "$_rp_NUM" = "balance" ] || [ "$_rp_NUM" = "split" ]; then
+      [ "$_rp_NUMP" -gt "${#_rp_NLIST[@]}" ] &&
+        echo "listdone" >> "$_rp_TMP/state" &&
         return 0;
-      NUM="${NLIST[$((NUMP-1))]}";
+      _rp_NUM="${_rp_NLIST[$((_rp_NUMP-1))]}";
     fi
-    for n in $(seq 1 $NUM); do
-      local line;
-      IFS= read -r -u$LISTFD line;
+    for _rp_n in $(seq 1 $_rp_NUM); do
+      local _rp_line;
+      IFS= read -r -u$_rp_LISTFD _rp_line;
       [ "$?" != 0 ] &&
-        echo "listdone" >> "$TMP/state" &&
+        echo "listdone" >> "$_rp_TMP/state" &&
         break;
-      LISTP+=( "$line" );
+      _rp_LISTP+=( "$_rp_line" );
     done
   }
 
   ### Run threads ###
-  runcmd () {
-    local LISTP=();
-    local THREAD="$1";
-    local NUMP="$2";
-    local CMD=("${PROTO[@]//\{\%\}/$THREAD}");
-    CMD=("${CMD[@]//\{\#\}/$NUMP}");
-    if [ "$LIST" != "" ]; then
-      readlist;
-      [ "${#LISTP[@]}" = 0 ] && return 0;
-      if [ "$NUMELEM" = 1 ]; then
-        CMD=("${CMD[@]//\{\*\}/$LISTP}"); # {*} whole element
-        local MLISTP=$(echo "$LISTP" | sed 's|\.[^./]*$||');
-        CMD=("${CMD[@]//\{\.\}/$MLISTP}"); # {.} no extension
-        MLISTP=$(echo "$LISTP" | sed 's|.*/||');
-        CMD=("${CMD[@]//\{\/\}/$MLISTP}"); # {/} no dir
-        MLISTP=$(echo "$LISTP" | sed 's|/[^/]*$||');
-        CMD=("${CMD[@]//\{\/\/\}/$MLISTP}"); # {//} only dir
-        MLISTP=$(echo "$LISTP" | sed 's|.*/||; s|\.[^.]*$||;');
-        CMD=("${CMD[@]//\{\/\.\}/$MLISTP}"); # {/.} basename
+  _rp_runcmd () {
+    local _rp_LISTP=();
+    local _rp_THREAD="$1";
+    local _rp_NUMP="$2";
+    local _rp_CMD=("${_rp_PROTO[@]//\{\%\}/$_rp_THREAD}");
+    _rp_CMD=("${_rp_CMD[@]//\{\#\}/$_rp_NUMP}");
+
+    if [ "$_rp_LIST" != "" ]; then
+      _rp_readlist;
+      [ "${#_rp_LISTP[@]}" = 0 ] && return 0;
+      if [ "$_rp_NUMELEM" = 1 ]; then
+        _rp_CMD=("${_rp_CMD[@]//\{\*\}/$_rp_LISTP}"); # {*} whole element
+        local _rp_MLISTP=$(echo "$_rp_LISTP" | sed 's|\.[^./]*$||');
+        _rp_CMD=("${_rp_CMD[@]//\{\.\}/$_rp_MLISTP}"); # {.} no extension
+        _rp_MLISTP=$(echo "$_rp_LISTP" | sed 's|.*/||');
+        _rp_CMD=("${_rp_CMD[@]//\{\/\}/$_rp_MLISTP}"); # {/} no dir
+        _rp_MLISTP=$(echo "$_rp_LISTP" | sed 's|/[^/]*$||');
+        _rp_CMD=("${_rp_CMD[@]//\{\/\/\}/$_rp_MLISTP}"); # {//} only dir
+        _rp_MLISTP=$(echo "$_rp_LISTP" | sed 's|.*/||; s|\.[^.]*$||;');
+        _rp_CMD=("${_rp_CMD[@]//\{\/\.\}/$_rp_MLISTP}"); # {/.} basename
       fi
     fi
-    echo "THREAD:$THREAD:$NUMP starting" >> "$TMP/state";
-    { if [ "$ARGPOS" != 0 ]; then
-        "${CMD[@]:0:$ARGPOS}" "${LISTP[@]}" "${CMD[@]:$((ARGPOS+1))}";
-      elif [ "$PIPEPOS" != 0 ]; then
-        "${CMD[@]:0:$PIPEPOS}" <( printf '%s\n' "${LISTP[@]}" ) "${CMD[@]:$((PIPEPOS+1))}";
-      elif [ "$FILEPOS" != 0 ]; then
-        printf '%s\n' "${LISTP[@]}" > "$TMP/list_$NUMP";
-        "${CMD[@]:0:$FILEPOS}" "$TMP/list_$NUMP" "${CMD[@]:$((FILEPOS+1))}";
-      elif [ "$OTHERARG" != 0 ] || [ "$NLIST" = 0 ]; then
-        "${CMD[@]}";
+    echo "THREAD:$_rp_THREAD:$_rp_NUMP starting" >> "$_rp_TMP/state";
+    { if [ "$_rp_ARGPOS" != 0 ]; then
+        "${_rp_CMD[@]:0:$_rp_ARGPOS}" "${_rp_LISTP[@]}" "${_rp_CMD[@]:$((_rp_ARGPOS+1))}";
+      elif [ "$_rp_PIPEPOS" != 0 ]; then
+        "${_rp_CMD[@]:0:$_rp_PIPEPOS}" <( printf '%s\n' "${_rp_LISTP[@]}" ) "${_rp_CMD[@]:$((_rp_PIPEPOS+1))}";
+      elif [ "$_rp_FILEPOS" != 0 ]; then
+        printf '%s\n' "${_rp_LISTP[@]}" > "$_rp_TMP/list_$_rp_NUMP";
+        "${_rp_CMD[@]:0:$_rp_FILEPOS}" "$_rp_TMP/list_$_rp_NUMP" "${_rp_CMD[@]:$((_rp_FILEPOS+1))}";
+      elif [ "$_rp_OTHERARG" != 0 ] || [ "$_rp_NLIST" = 0 ]; then
+        "${_rp_CMD[@]}";
       else
-        echo "$LISTP" | "${CMD[@]}";
+        echo "$_rp_LISTP" | "${_rp_CMD[@]}";
       fi
-      local RC="$?";
-      [ "$RC" != 0 ] && echo "THREAD:$THREAD:$NUMP $RC failed" >> "$TMP/state";
-      echo "THREAD:$THREAD:$NUMP ended" >> "$TMP/state";
-    } >> "$TMP/out_$THREAD" 2>> "$TMP/err_$THREAD" &
+      local _rp_RC="$?";
+      [ "$_rp_RC" != 0 ] && echo "THREAD:$_rp_THREAD:$_rp_NUMP $_rp_RC failed" >> "$_rp_TMP/state";
+      echo "THREAD:$_rp_THREAD:$_rp_NUMP ended" >> "$_rp_TMP/state";
+    } >> "$_rp_TMP/out_$_rp_THREAD" 2>> "$_rp_TMP/err_$_rp_THREAD" &
   }
 
-  ( local NUMP=0;
-    for THREAD in "${THREADS[@]}"; do
-      #>> "$TMP/out_$THREAD";
-      #>> "$TMP/err_$THREAD";
-      NUMP=$((NUMP+1));
-      runcmd "$THREAD" "$NUMP";
+  ( local _rp_NUMP=0;
+    for _rp_THREAD in "${_rp_THREADS[@]}"; do
+      #>> "$_rp_TMP/out_$_rp_THREAD";
+      #>> "$_rp_TMP/err_$_rp_THREAD";
+      _rp_NUMP=$((_rp_NUMP+1));
+      _rp_runcmd "$_rp_THREAD" "$_rp_NUMP";
     done
     while true; do
-      local NUMR=$(( $(grep -c ' starting$' "$TMP/state") - $(grep -c ' ended$' "$TMP/state") ));
-      if [ "$NUMP" = "$TOTP" ] ||
-         [ $(grep -c '^listdone$' "$TMP/state") != 0 ]; then
+      local _rp_NUMR=$(( $(grep -c ' starting$' "$_rp_TMP/state") - $(grep -c ' ended$' "$_rp_TMP/state") ));
+      if [ "$_rp_NUMP" = "$_rp_TOTP" ] ||
+         [ $(grep -c '^listdone$' "$_rp_TMP/state") != 0 ]; then
         wait;
         break;
-      elif [ "$NUMR" -lt "$NTHREADS" ]; then
-        NUMP=$((NUMP+1));
-        THREAD=$(
-          sed -n '/^THREAD:/{ s|^THREAD:\([^:]*\):[^ ]*|\1|; p; }' "$TMP/state" \
+      elif [ "$_rp_NUMR" -lt "$_rp_NTHREADS" ]; then
+        _rp_NUMP=$((_rp_NUMP+1));
+        _rp_THREAD=$(
+          sed -n '/^THREAD:/{ s|^THREAD:\([^:]*\):[^ ]*|\1|; p; }' "$_rp_TMP/state" \
             | awk '
                 { if( $NF == "ended" )
                     ended[$1] = "";
@@ -414,14 +415,14 @@ run_parallel () {(
                 } END {
                   for( job in ended ) { print job; break; }
                 }' );
-        runcmd "$THREAD" "$NUMP";
+        _rp_runcmd "$_rp_THREAD" "$_rp_NUMP";
         continue;
       fi
-      local ended;
-      IFS= read -r -u$ENDFD ended;
+      local _rp_ended;
+      IFS= read -r -u$_rp_ENDFD _rp_ended;
     done
   )
 
-  cleanup;
-  return "$NTHREADS";
+  _rp_cleanup;
+  return "$_rp_NTHREADS";
 )}
