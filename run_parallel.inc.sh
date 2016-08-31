@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Revision: 150 $$Date:: 2016-08-19 #$
+## @version $Revision: 151 $$Date:: 2016-08-31 #$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
 ##
@@ -39,7 +39,7 @@
 
 ### Function that prints the version of run_parallel ###
 run_parallel_version () {
-  echo '$Revision: 150 $$Date: 2016-08-19 19:00:34 +0200 (Fri, 19 Aug 2016) $' \
+  echo '$Revision: 151 $$Date: 2016-08-31 18:15:38 +0200 (Wed, 31 Aug 2016) $' \
     | sed 's|^$Revision:|run_parallel: revision|; s| (.*|)|; s|[$][$]Date: |(|;' 1>&2;
 }
 
@@ -391,10 +391,10 @@ run_parallel () {(
       elif [ "$_rp_FILEPOS" != 0 ]; then
         printf '%s\n' "${_rp_LISTP[@]}" > "$_rp_TMP/list_$_rp_NUMP";
         "${_rp_CMD[@]:0:$_rp_FILEPOS}" "$_rp_TMP/list_$_rp_NUMP" "${_rp_CMD[@]:$((_rp_FILEPOS+1))}";
-      elif [ "$_rp_OTHERARG" != 0 ] || [ "$_rp_NLIST" = 0 ]; then
+      elif [ "$_rp_OTHERARG" != 0 ] || [ "$_rp_LIST" = "" ]; then
         "${_rp_CMD[@]}";
       else
-        echo "$_rp_LISTP" | "${_rp_CMD[@]}";
+        printf '%s\n' "${_rp_LISTP[@]}" | "${_rp_CMD[@]}";
       fi
       local _rp_RC="$?";
       [ "$_rp_RC" != 0 ] && echo "THREAD:$_rp_THREAD:$_rp_NUMP $_rp_RC failed" >> "$_rp_TMP/state";
