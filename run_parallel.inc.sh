@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Revision: 146 $$Date:: 2016-07-29 #$
+## @version $Revision: 151 $$Date:: 2016-08-31 #$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
 ##
@@ -39,7 +39,7 @@
 
 ### Function that prints the version of run_parallel ###
 run_parallel_version () {
-  echo '$Revision: 146 $$Date: 2016-07-29 11:35:58 +0200 (Fri, 29 Jul 2016) $' \
+  echo '$Revision: 151 $$Date: 2016-08-31 18:15:38 +0200 (Wed, 31 Aug 2016) $' \
     | sed 's|^$Revision:|run_parallel: revision|; s| (.*|)|; s|[$][$]Date: |(|;' 1>&2;
 }
 
@@ -60,6 +60,7 @@ run_parallel () {(
   local _rp_LIST="";
   local _rp_NUMELEM="1";
   local _rp_KEEPTMP="no";
+  local _rp_PREPEND="yes";
   local _rp_TMP="";
   if [ $# -lt 2 ]; then
     { echo "$_rp_FN: Error: Not enough input arguments";
@@ -84,6 +85,7 @@ run_parallel () {(
       echo "              {el1},{el2},... or range {#ini}:[{#inc}:]{#end} (def.=none)";
       echo " -n NUMELEM   Elements per instance, either an int>0, 'split' or 'balance' (def.=$_rp_NUMELEM)";
       echo " -k (yes|no)  Whether to keep temporal files (def.=$_rp_KEEPTMP)";
+      echo " -p (yes|no)  Whether to prepend IDs to outputs (def.=$_rp_PREPEND)";
       echo " -d TMPDIR    Use given directory for temporal files, also sets -k yes (def.=false)";
       echo "Environment variables:";
       echo "  TMPDIR      Directory for temporal files, must exist (def.=/tmp)";
@@ -116,6 +118,8 @@ run_parallel () {(
       _rp_NUMELEM="$2";
     elif [ "$1" = "-k" ]; then
       _rp_KEEPTMP="$2";
+    elif [ "$1" = "-p" ]; then
+      _rp_PREPEND="$2";
     elif [ "$1" = "-d" ]; then
       _rp_TMP="$2";
     else
@@ -282,10 +286,17 @@ run_parallel () {(
   fi
 
   ### Join thread logs prepending IDs to each line ###
-  local _rp_PROC_LOGS="/::$_rp_FN::/q;"' :loop;
-    /^$/ { N; /\n==> .* <==$/! { G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; P; }; D; b loop; };
-    /^==> .* <==$/ { s|^==> .*/[oe][ur][tr]_\([^ ]*\) <==$|\1\t|; h; d; };
-    G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; p;';
+  if [ "$_rp_PREPEND" = "yes" ]; then
+    local _rp_PROC_LOGS="/::$_rp_FN::/q;"' :loop;
+      /^$/ { N; /\n==> .* <==$/! { G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; P; }; D; b loop; };
+      /^==> .* <==$/ { s|^==> .*/[oe][ur][tr]_\([^ ]*\) <==$|\1\t|; h; d; };
+      G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; p;';
+  else
+    local _rp_PROC_LOGS="/::$_rp_FN::/q;"' :loop;
+      /^$/ { N; /\n==> .* <==$/! { G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; P; }; D; b loop; };
+      /^==> .* <==$/ { s|^==> .*/[oe][ur][tr]_[^ ]* <==$||; h; d; };
+      G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; p;';
+  fi
 
   local _rp_THREAD;
   for _rp_THREAD in "${_rp_THREADS[@]}"; do
@@ -348,7 +359,7 @@ run_parallel () {(
     done
   }
 
-  ### Run threads ###
+  ### Function for threads ###
   _rp_runcmd () {
     local _rp_LISTP=();
     local _rp_THREAD="$1";
@@ -372,17 +383,18 @@ run_parallel () {(
       fi
     fi
     echo "THREAD:$_rp_THREAD:$_rp_NUMP starting" >> "$_rp_TMP/state";
-    { if [ "$_rp_ARGPOS" != 0 ]; then
+    {
+      if [ "$_rp_ARGPOS" != 0 ]; then
         "${_rp_CMD[@]:0:$_rp_ARGPOS}" "${_rp_LISTP[@]}" "${_rp_CMD[@]:$((_rp_ARGPOS+1))}";
       elif [ "$_rp_PIPEPOS" != 0 ]; then
         "${_rp_CMD[@]:0:$_rp_PIPEPOS}" <( printf '%s\n' "${_rp_LISTP[@]}" ) "${_rp_CMD[@]:$((_rp_PIPEPOS+1))}";
       elif [ "$_rp_FILEPOS" != 0 ]; then
         printf '%s\n' "${_rp_LISTP[@]}" > "$_rp_TMP/list_$_rp_NUMP";
         "${_rp_CMD[@]:0:$_rp_FILEPOS}" "$_rp_TMP/list_$_rp_NUMP" "${_rp_CMD[@]:$((_rp_FILEPOS+1))}";
-      elif [ "$_rp_OTHERARG" != 0 ] || [ "$_rp_NLIST" = 0 ]; then
+      elif [ "$_rp_OTHERARG" != 0 ] || [ "$_rp_LIST" = "" ]; then
         "${_rp_CMD[@]}";
       else
-        echo "$_rp_LISTP" | "${_rp_CMD[@]}";
+        printf '%s\n' "${_rp_LISTP[@]}" | "${_rp_CMD[@]}";
       fi
       local _rp_RC="$?";
       [ "$_rp_RC" != 0 ] && echo "THREAD:$_rp_THREAD:$_rp_NUMP $_rp_RC failed" >> "$_rp_TMP/state";
@@ -390,6 +402,7 @@ run_parallel () {(
     } >> "$_rp_TMP/out_$_rp_THREAD" 2>> "$_rp_TMP/err_$_rp_THREAD" &
   }
 
+  ### Run threads ###
   ( local _rp_NUMP=0;
     for _rp_THREAD in "${_rp_THREADS[@]}"; do
       #>> "$_rp_TMP/out_$_rp_THREAD";
