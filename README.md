@@ -20,15 +20,15 @@ Description: Executes instances of a command in parallel. In the command
   arguments, '{#}' is replaced by the command instance number (1, 2, ...)
   and '{%}' is replaced by the thread ID (see options). The thread ID is
   prepended to every line of stderr and stdout. If a list to process
-  is given, there are three possibilities to supply the list elements to the
-  command: 1) if an argument is '{*}' elements are given as arguments in that
-  position, 2) if an argument contains '{@}' elements are given in a file and
-  '{@}' is replaced by the file path, 3) if an argument is '{<}' elements
-  are given through a named pipe, and 4) if no special argument is provided
-  the elements are given through stdin. Other replacements only when processing
-  one element at a time are: '{.}' element without extension, '{/}' element
-  without path, '{//}' only path of element, and '{/.}' element without either
-  path or extension.
+  is given, there are four possibilities to supply the list of elements to the
+  command: 1) if an argument is '{*}', elements are given as arguments in that
+  position, 2) if an argument contains '{@}', elements are given in a file and
+  '{@}' is replaced by the file path, 3) if an argument is '{<}', elements
+  are given through a named pipe and '{<}' is replaced by the pipe, and 4) if
+  no special argument is provided the elements are given through stdin. Other
+  replacements only when processing one element at a time are: '{.}' element
+  without extension, '{/}' element without path, '{//}' only path of element,
+  and '{/.}' element without either path or extension.
 Usage: run_parallel [OPTIONS] COMMAND ARG1 ARG2 ... [('{@}'|'{*}'|'{<}') ... '{#}' ... '{%}'] ...
 Options:
  -T THREADS      Concurrent threads, either an int>0, list {id1},{id2},...

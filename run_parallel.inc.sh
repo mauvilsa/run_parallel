@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Version: 2016-09-21$
+## @version $Version: 2016-09-22$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
 ##
@@ -82,15 +82,15 @@ run_parallel () {(
       echo "  arguments, '{#}' is replaced by the command instance number (1, 2, ...)";
       echo "  and '{%}' is replaced by the thread ID (see options). The thread ID is";
       echo "  prepended to every line of stderr and stdout. If a list to process";
-      echo "  is given, there are three possibilities to supply the list elements to the";
-      echo "  command: 1) if an argument is '{*}' elements are given as arguments in that";
-      echo "  position, 2) if an argument contains '{@}' elements are given in a file and";
-      echo "  '{@}' is replaced by the file path, 3) if an argument is '{<}' elements";
-      echo "  are given through a named pipe, and 4) if no special argument is provided";
-      echo "  the elements are given through stdin. Other replacements only when processing";
-      echo "  one element at a time are: '{.}' element without extension, '{/}' element";
-      echo "  without path, '{//}' only path of element, and '{/.}' element without either";
-      echo "  path or extension.";
+      echo "  is given, there are four possibilities to supply the list of elements to the";
+      echo "  command: 1) if an argument is '{*}', elements are given as arguments in that";
+      echo "  position, 2) if an argument contains '{@}', elements are given in a file and";
+      echo "  '{@}' is replaced by the file path, 3) if an argument is '{<}', elements";
+      echo "  are given through a named pipe and '{<}' is replaced by the pipe, and 4) if";
+      echo "  no special argument is provided the elements are given through stdin. Other";
+      echo "  replacements only when processing one element at a time are: '{.}' element";
+      echo "  without extension, '{/}' element without path, '{//}' only path of element,";
+      echo "  and '{/.}' element without either path or extension.";
       echo "Usage: $_rp_FN [OPTIONS] COMMAND ARG1 ARG2 ... [('{@}'|'{*}'|'{<}') ... '{#}' ... '{%}'] ...";
       echo "Options:";
       echo " -T THREADS      Concurrent threads, either an int>0, list {id1},{id2},...";
@@ -138,7 +138,7 @@ run_parallel () {(
       -k | --keep )    _rp_KEEPTMP="$2"; ;;
       -p | --prepend ) _rp_PREPEND="$2"; ;;
       -d | --tmpdir )  _rp_TMP="$2";     ;;
-      -v | --version ) echo "$Version: 2016-09-21$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
+      -v | --version ) echo "$Version: 2016-09-22$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
       -h | --help )    run_parallel_usage; return 0; ;;
       * )
         echo "$_rp_FN: error: unexpected input argument: $1" 1>&2;
