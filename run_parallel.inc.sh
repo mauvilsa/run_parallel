@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Version: 2016-09-22$
+## @version $Version: 2016-09-23$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
 ##
@@ -138,7 +138,7 @@ run_parallel () {(
       -k | --keep )    _rp_KEEPTMP="$2"; ;;
       -p | --prepend ) _rp_PREPEND="$2"; ;;
       -d | --tmpdir )  _rp_TMP="$2";     ;;
-      -v | --version ) echo "$Version: 2016-09-22$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
+      -v | --version ) echo "$Version: 2016-09-23$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
       -h | --help )    run_parallel_usage; return 0; ;;
       * )
         echo "$_rp_FN: error: unexpected input argument: $1" 1>&2;
@@ -229,7 +229,7 @@ run_parallel () {(
     elif [[ "$_rp_LIST" = *:* ]]; then
       exec {_rp_LISTFD}< <( seq ${_rp_LIST//:/ } );
     else
-      echo "$_rp_FN: error: unexpected list: $_rp_LIST" 1>&2;
+      echo "$_rp_FN: error: unexpected list format or file not found: $_rp_LIST" 1>&2;
       [ "$_rp_KEEPTMP" != "yes" ] && rm -r "$_rp_TMP";
       return 1;
     fi
@@ -305,16 +305,31 @@ run_parallel () {(
 
   ### Join thread logs prepending IDs to each line ###
   if [ "$_rp_PREPEND" = "yes" ]; then
-    local _rp_PROC_LOGS="/::$_rp_FN::/q;"' :loop;
-      /^$/ { N; /\n==> .* <==$/! { G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; P; }; D; b loop; };
-      /^==> .* <==$/ { s|^==> .*/[oe][ur][tr]_\([^ ]*\) <==$|\1\t|; h; d; };
-      G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; p;';
+    _rp_PREPEND='printf("%s\t%s\n",T,LINE[T]);';
   else
-    local _rp_PROC_LOGS="/::$_rp_FN::/q;"' :loop;
-      /^$/ { N; /\n==> .* <==$/! { G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; P; }; D; b loop; };
-      /^==> .* <==$/ { s|^==> .*/[oe][ur][tr]_[^ ]* <==$||; h; d; };
-      G; s|^\(.*\)\n\([^\n]*\)$|\2\1|; p;';
+    _rp_PREPEND='print(LINE[T]);';
   fi
+  local _rp_PROC_OUTPUT='
+    function print_line( T ) {
+      if( T in LINE ) {
+        '"$_rp_PREPEND"'
+        delete LINE[T];
+      }
+    }
+    { if( match($0,/^::'"$_rp_FN"'::$/) )
+        exit;
+      if( match($0,/^==> .+\/[oe][ur][tr]_.+ <==$/) ) {
+        THREAD = $(NF-1);
+        sub(/.+\/[oe][ur][tr]_/,"",THREAD);
+        delete INIT[THREAD];
+      }
+      else {
+        if( THREAD in INIT )
+          print_line(THREAD);
+        LINE[THREAD] = ( LINE[THREAD] $0 );
+        INIT[THREAD] = "";
+      }
+    }';
 
   local _rp_THREAD;
   for _rp_THREAD in "${_rp_THREADS[@]}"; do
@@ -322,18 +337,18 @@ run_parallel () {(
     > "$_rp_TMP/out_$_rp_THREAD"; > "$_rp_TMP/err_$_rp_THREAD";
   done
   mkfifo "$_rp_TMP/out" "$_rp_TMP/err";
-  local _rp_SEDPID;
-  sed -un "$_rp_PROC_LOGS" < "$_rp_TMP/out"      & _rp_SEDPID[0]="$!";
-  tail --pid=${_rp_SEDPID[0]} -f "$_rp_TMP"/out_* > "$_rp_TMP/out" &
-  sed -un "$_rp_PROC_LOGS" < "$_rp_TMP/err" 1>&2 & _rp_SEDPID[1]="$!";
-  tail --pid=${_rp_SEDPID[1]} -f "$_rp_TMP"/err_* > "$_rp_TMP/err" &
+  local _rp_PROCPID;
+  awk "$_rp_PROC_OUTPUT" < "$_rp_TMP/out"      & _rp_PROCPID[0]="$!";
+  tail --pid=${_rp_PROCPID[0]} -f "$_rp_TMP"/out_* > "$_rp_TMP/out" &
+  awk "$_rp_PROC_OUTPUT" < "$_rp_TMP/err" 1>&2 & _rp_PROCPID[1]="$!";
+  tail --pid=${_rp_PROCPID[1]} -f "$_rp_TMP"/err_* > "$_rp_TMP/err" &
   #for _rp_THREAD in "${_rp_THREADS[@]}"; do
   #  >> "$_rp_TMP/out_$_rp_THREAD";
   #  >> "$_rp_TMP/err_$_rp_THREAD";
   #done
 
   local _rp_ENDFD;
-  exec {_rp_ENDFD}< <( tail --pid=${_rp_SEDPID[0]} -f "$_rp_TMP/state" | grep --line-buffered ' ended$' );
+  exec {_rp_ENDFD}< <( tail --pid=${_rp_PROCPID[0]} -f "$_rp_TMP/state" | grep --line-buffered ' ended$' );
 
   ### Cleanup function ###
   trap _rp_cleanup INT;
@@ -342,12 +357,12 @@ run_parallel () {(
     echo "::$_rp_FN::" >> "$_rp_TMP/err_${_rp_THREADS[0]}";
     local _rp_SLEEP="0.01";
     for _rp_n in $(seq 1 10); do
-      ( ! ( ps -p "${_rp_SEDPID[0]}" || ps -p "${_rp_SEDPID[1]}" ) >/dev/null ) && break;
+      ( ! ( ps -p "${_rp_PROCPID[0]}" || ps -p "${_rp_PROCPID[1]}" ) >/dev/null ) && break;
       sleep "$_rp_SLEEP";
       _rp_SLEEP=$(echo "$_rp_SLEEP+$_rp_SLEEP" | bc -l);
     done
-    ( ps -p "${_rp_SEDPID[0]}" || ps -p "${_rp_SEDPID[1]}" ) >/dev/null && 
-      kill ${_rp_SEDPID[@]} 2>/dev/null;
+    ( ps -p "${_rp_PROCPID[0]}" || ps -p "${_rp_PROCPID[1]}" ) >/dev/null && 
+      kill ${_rp_PROCPID[@]} 2>/dev/null;
     #[ $(uname) = "Darwin" ] &&
     #  echo "$_rp_FN: warning: on OS X output may be incomplete" 1>&2;
     _rp_NTHREADS=$(grep -c '^THREAD:.* failed$' "$_rp_TMP/state");
