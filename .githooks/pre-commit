@@ -13,6 +13,12 @@ while [ "$n" -lt "${#FILES[@]}" ]; do
       echo "${0##*/}: updating version of ${FILES[$n]}" 1>&2;
       sed -i 's|$Version:[^$]*\$|$Version: '"$V"'$|' "${FILES[$n]}";
       git add "${FILES[$n]}";
+      { . run_parallel.inc.sh;
+        run_parallel --markdown;
+        printf "# COPYRIGHT\n\n";
+        sed -n '/MIT License/,/^$/{ s|^## *||; p; }' run_parallel.inc.sh;
+      } > README.md;
+      git add README.md;
       ;;
   esac
   if [ "${FILES[$n]:$((${#FILES[$n]}-3))}" = ".sh" ]; then

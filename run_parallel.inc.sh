@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Version: 2016-09-23$
+## @version $Version: 2016-09-24$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
 ##
@@ -32,10 +32,6 @@
 ## OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ## SOFTWARE.
 ##
-
-[ "${BASH_SOURCE[0]}" = "$0" ] &&
-  echo "run_parallel.inc.sh: error: script intended intended for sourcing, try: . run_parallel.inc.sh" 1>&2 &&
-  exit 1;
 
 ### A fuction for sorting (by thread) the output of run_parallel ###
 run_parallel_output_sort () {
@@ -77,54 +73,101 @@ run_parallel () {(
   local _rp_PREPEND="yes";
   local _rp_TMP="";
 
+  local _rp_FILT_USAGE='s|^[*#] *||;s|\\\*|*|;s| \*| |g;s|\*\([, ]\)|\1|g;s|\\--|--|;';
   run_parallel_usage () {
-    { echo "Description: Executes instances of a command in parallel. In the command";
-      echo "  arguments, '{#}' is replaced by the command instance number (1, 2, ...)";
-      echo "  and '{%}' is replaced by the thread ID (see options). The thread ID is";
-      echo "  prepended to every line of stderr and stdout. If a list to process";
-      echo "  is given, there are four possibilities to supply the list of elements to the";
-      echo "  command: 1) if an argument is '{*}', elements are given as arguments in that";
-      echo "  position, 2) if an argument contains '{@}', elements are given in a file and";
-      echo "  '{@}' is replaced by the file path, 3) if an argument is '{<}', elements";
-      echo "  are given through a named pipe and '{<}' is replaced by the pipe, and 4) if";
-      echo "  no special argument is provided the elements are given through stdin. Other";
-      echo "  replacements only when processing one element at a time are: '{.}' element";
-      echo "  without extension, '{/}' element without path, '{//}' only path of element,";
-      echo "  and '{/.}' element without either path or extension.";
-      echo "Usage: $_rp_FN [OPTIONS] COMMAND ARG1 ARG2 ... [('{@}'|'{*}'|'{<}') ... '{#}' ... '{%}'] ...";
-      echo "Options:";
-      echo " -T THREADS      Concurrent threads, either an int>0, list {id1},{id2},...";
-      echo "                 or range {#ini}:[{#inc}:]{#end} (def.=$_rp_THREADS)";
-      echo " -l LIST         List of elements to process, either a file (- is stdin), list";
-      echo "                 {el1},{el2},... or range {#ini}:[{#inc}:]{#end} (def.=none)";
-      echo " -n NUMELEM      Elements per instance, either an int>0, 'split' or 'balance' (def.=$_rp_NUMELEM)";
-      echo " -k (yes|no)     Whether to keep temporal files (def.=$_rp_KEEPTMP)";
-      echo " -p (yes|no)     Whether to prepend IDs to outputs (def.=$_rp_PREPEND)";
-      echo " -d TMPDIR       Use given directory for temporal files, also sets -k yes (def.=false)";
-      echo " -v | --version  Print script version and exit";
-      echo " -h | --help     Print this help and exit";
-      echo "Environment variables:";
-      echo "  TMPDIR      Directory for temporal files, must exist (def.=/tmp)";
-      echo "  TMPRND      ID for unique temporal files (def.=rand)";
-      echo "Dummy examples:"
-      echo "  myfunc () {";
-      echo "    sleep \$((RANDOM%3));";
-      echo "    NUM=\$( wc -w < \$2 );";
-      echo "    ITEMS=\$( echo \$( < \$2 ) );";
-      echo "    echo \"\$1: processed \$NUM items (\$ITEMS)\";";
-      echo "  }";
-      echo "  seq 1 100 | $_rp_FN -T A,B,C -n balance -l - myfunc 'Thread {%} instance {#}' '{@}' | tee OUTPUT";
-      echo "  run_parallel_output_sort -f -s rd < OUTPUT";
-      echo "  seq 1 100 | $_rp_FN -T 4 -n 7 -l - myfunc 'Thread {%} instance {#}' '{@}'";
-      echo "  myfunc () { echo \"Processing file \$1\"; }";
-      echo "  $_rp_FN -T 5 myfunc 'input_{%}.txt'";
-      echo "  $_rp_FN -T 2:3:9 myfunc 'input_{%}.txt'";
-    } 1>&2;
+    echo "
+# NAME
+
+run_parallel - Simple bash function for parallelizing.
+
+# SYNOPSIS
+
+run_parallel [OPTION]... *COMMAND* [ARG]... ('{@}'|'{\*}'|'{<}')... '{#}'... '{%}'...  
+run_parallel_output_sort [OPTION]... < *RUN_PARALLEL_OUTPUT*
+
+# DESCRIPTION
+
+It is a simple and versatile bash function for parallelizing the execution of
+commands or other bash functions. The main features that differentiates it
+from other popular tools for parallelizing are:
+
+- Bash functions can be parallelized without need to export them.
+- A single output for stdout and stdin that are prepended with the thread
+  name. They can be sorted later (unlike xargs) per thread using
+  _run_parallel_output_sort_ .
+- A license which does not require to cite a paper if used for research
+  (unlike GNU parallel).
+
+In the command arguments, '{#}' is replaced by the command instance number (1,
+2, ...) and '{%}' is replaced by the thread ID (see options). The thread ID is
+prepended to every line of stderr and stdout. If a list to process is given,
+there are four possibilities to supply the list of elements to the command: 1)
+if an argument is '{\*}', elements are given as arguments in that position, 2)
+if an argument contains '{@}', elements are given in a file and '{@}' is
+replaced by the file path, 3) if an argument is '{<}', elements are given
+through a named pipe and '{<}' is replaced by the pipe, and 4) if no special
+argument is provided the elements are given through stdin. Other replacements
+only when processing one element at a time are: '{.}' element without
+extension, '{/}' element without path, '{//}' only path of element, and '{/.}'
+element without either path or extension.
+
+# ENVIRONMENT VARIABLES
+
+*TMPDIR*  --  Directory for temporal files, must exist (def.=/tmp)  
+*TMPRND*  --  ID for unique temporal files (def.=rand)
+
+# OPTIONS
+
+-T *THREADS*, \--threads *THREADS*  
+  Concurrent threads: either an int>0, list id1,id2,... or range
+  #ini:[#inc:]#end (def.=$_rp_THREADS)
+
+-l *LIST*, \--list *LIST*  
+  List of elements to process: either a file (- is stdin), list el1,el2,... or
+  range #ini:[#inc:]#end (def.=none)
+
+-n *NUMELEM*, \--num *NUMELEM*  
+  Elements per instance: either an int>0, 'split' or 'balance'
+  (def.=$_rp_NUMELEM)
+
+-p *(yes|no)*, \--prepend *(yes|no)*  
+  Whether to prepend IDs to outputs (def.=$_rp_PREPEND)
+
+-k *(yes|no)*, \--keeptmp *(yes|no)*  
+  Whether to keep temporal files (def.=$_rp_KEEPTMP)
+
+-d *TMPDIR*, \--tmpdir *TMPDIR*  
+  Use given directory for temporal files, also sets -k yes (def.=false)
+
+-v, \--version  
+  Print script version and exit
+
+-h, \--help  
+  Print help and exit
+
+# DUMMY EXAMPLES
+
+    myfunc () {  
+      sleep \$((RANDOM%3));  
+      NUM=\$( wc -w < \$2 );  
+      ITEMS=\$( echo \$( < \$2 ) );  
+      echo \"\$1: processed \$NUM items (\$ITEMS)\";  
+    }
+
+    seq 1 100 | $_rp_FN -T 3 -n balance -l - myfunc 'Thread {%} instance {#}' '{@}'  
+    seq 1 100 | $_rp_FN -T A,B,C,D -n 7 -l - myfunc 'Thread {%} instance {#}' '{@}'  
+    seq 1 100 | $_rp_FN -T A,B,C -n 7 -l - myfunc 'Thread {%} instance {#}' '{@}' | run_parallel_output_sort -f -s rd
+
+    myfunc () { echo \"Processing file \$1\"; }
+
+    $_rp_FN -T 5 myfunc 'input_{%}.txt'  
+    $_rp_FN -T 2:3:9 myfunc 'input_{%}.txt'
+";
   }
 
   if [ $# -lt 1 ]; then
-    echo "$_rp_FN: Error: Not enough input arguments" 1>&2;
-    run_parallel_usage;
+    echo "$_rp_FN: Error: Not enough input arguments";
+    run_parallel_usage | sed "$_rp_FILT_USAGE";
     return 1;
   fi
 
@@ -135,11 +178,19 @@ run_parallel () {(
       -T | --threads ) _rp_THREADS="$2"; ;;
       -l | --list )    _rp_LIST="$2";    ;;
       -n | --num )     _rp_NUMELEM="$2"; ;;
-      -k | --keep )    _rp_KEEPTMP="$2"; ;;
+      -k | --keeptmp ) _rp_KEEPTMP="$2"; ;;
       -p | --prepend ) _rp_PREPEND="$2"; ;;
       -d | --tmpdir )  _rp_TMP="$2";     ;;
-      -v | --version ) echo "$Version: 2016-09-23$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
-      -h | --help )    run_parallel_usage; return 0; ;;
+      -v | --version ) echo "$Version: 2016-09-24$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
+      -h | --help )    run_parallel_usage | sed "$_rp_FILT_USAGE"; return 0; ;;
+      --markdown )     run_parallel_usage; return 0; ;;
+      --pandoc )
+        run_parallel_usage | sed -n '/^run_parallel - /{ s|^|% |; s| -|(1)|; p; }';
+        echo "% Mauricio Villegas <mauricio_ville@yahoo.com>";
+        echo '$Version: 2016-09-24$' | sed 's|.* |% |; s|\$$||;';
+        run_parallel_usage;
+        return 0;
+        ;;
       * )
         echo "$_rp_FN: error: unexpected input argument: $1" 1>&2;
         return 1;
@@ -316,9 +367,16 @@ run_parallel () {(
         delete LINE[T];
       }
     }
-    { if( match($0,/^::'"$_rp_FN"'::$/) )
-        exit;
-      if( match($0,/^==> .+\/[oe][ur][tr]_.+ <==$/) ) {
+    { if( match($0,/^::'"$_rp_FN"'::$/) ) {
+        EXIT++;
+        if( EXIT == NTHREADS ) {
+          for( THREAD in LINE )
+            if( LINE[THREAD] != "" )
+              print_line(THREAD);
+          exit;
+        }
+      }
+      else if( match($0,/^==> .+\/[oe][ur][tr]_.+ <==$/) ) {
         THREAD = $(NF-1);
         sub(/.+\/[oe][ur][tr]_/,"",THREAD);
         delete INIT[THREAD];
@@ -338,9 +396,9 @@ run_parallel () {(
   done
   mkfifo "$_rp_TMP/out" "$_rp_TMP/err";
   local _rp_PROCPID;
-  awk "$_rp_PROC_OUTPUT" < "$_rp_TMP/out"      & _rp_PROCPID[0]="$!";
+  awk -v NTHREADS="$_rp_NTHREADS" "$_rp_PROC_OUTPUT" < "$_rp_TMP/out"      & _rp_PROCPID[0]="$!";
   tail --pid=${_rp_PROCPID[0]} -f "$_rp_TMP"/out_* > "$_rp_TMP/out" &
-  awk "$_rp_PROC_OUTPUT" < "$_rp_TMP/err" 1>&2 & _rp_PROCPID[1]="$!";
+  awk -v NTHREADS="$_rp_NTHREADS" "$_rp_PROC_OUTPUT" < "$_rp_TMP/err" 1>&2 & _rp_PROCPID[1]="$!";
   tail --pid=${_rp_PROCPID[1]} -f "$_rp_TMP"/err_* > "$_rp_TMP/err" &
   #for _rp_THREAD in "${_rp_THREADS[@]}"; do
   #  >> "$_rp_TMP/out_$_rp_THREAD";
@@ -353,8 +411,7 @@ run_parallel () {(
   ### Cleanup function ###
   trap _rp_cleanup INT;
   _rp_cleanup () {
-    echo "::$_rp_FN::" >> "$_rp_TMP/out_${_rp_THREADS[0]}";
-    echo "::$_rp_FN::" >> "$_rp_TMP/err_${_rp_THREADS[0]}";
+    echo "::$_rp_FN::" | tee -a "$_rp_TMP"/{out,err}_* >/dev/null;
     local _rp_SLEEP="0.01";
     for _rp_n in $(seq 1 10); do
       ( ! ( ps -p "${_rp_PROCPID[0]}" || ps -p "${_rp_PROCPID[1]}" ) >/dev/null ) && break;
@@ -363,8 +420,6 @@ run_parallel () {(
     done
     ( ps -p "${_rp_PROCPID[0]}" || ps -p "${_rp_PROCPID[1]}" ) >/dev/null && 
       kill ${_rp_PROCPID[@]} 2>/dev/null;
-    #[ $(uname) = "Darwin" ] &&
-    #  echo "$_rp_FN: warning: on OS X output may be incomplete" 1>&2;
     _rp_NTHREADS=$(grep -c '^THREAD:.* failed$' "$_rp_TMP/state");
     [ "$_rp_NTHREADS" != 0 ] && grep '^THREAD:.* failed$' "$_rp_TMP/state" 1>&2;
     [ "$_rp_LISTFD" != "" ] && exec {_rp_LISTFD}>&-;
@@ -473,3 +528,11 @@ run_parallel () {(
   _rp_cleanup;
   return "$_rp_NTHREADS";
 )}
+
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  [ "$1" = "--pandoc" ] &&
+    run_parallel "$@" &&
+    exit 0;
+  echo "run_parallel.inc.sh: error: script intended intended for sourcing, try: . run_parallel.inc.sh";
+  exit 1;
+fi
