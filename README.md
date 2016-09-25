@@ -10,9 +10,9 @@ run_parallel_output_sort [OPTION]... < *RUN_PARALLEL_OUTPUT*
 
 # DESCRIPTION
 
-It is a simple and versatile bash function for parallelizing the execution of
-commands or other bash functions. The main features that differentiates it
-from other popular tools for parallelizing are:
+run_parallel is a simple and versatile bash function for parallelizing the
+execution of commands or other bash functions. The main features that
+differentiates it from other popular tools for parallelizing are:
 
 - Bash functions can be parallelized without need to export them.
 - A single output for stdout and stdin that are prepended with the thread

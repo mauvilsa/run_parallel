@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Version: 2016-09-24$
+## @version $Version: 2016-09-25$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
 ##
@@ -33,6 +33,10 @@
 ## SOFTWARE.
 ##
 
+[ "${BASH_SOURCE[0]}" = "$0" ] &&
+  echo "run_parallel.inc.sh: error: script intended intended for sourcing, try: . run_parallel.inc.sh" &&
+  exit 1;
+
 ### A fuction for sorting (by thread) the output of run_parallel ###
 run_parallel_output_sort () {
   local FN="run_parallel_output_sort";
@@ -45,12 +49,11 @@ run_parallel_output_sort () {
       -s ) SRT="$2"; shift 2; ;;
       -f ) SED+=" s|^[^\t][^\t]*\t||;"; shift; ;;
       * )
-        { echo "Description: Sorts by thread the output from run_parallel using the prepended IDs.";
-          echo "Usage: $FN [OPTIONS] < COMMAND ARG1 ARG2 ... [('{@}'|'{*}'|'{<}') ... '{#}' ... '{%}'] ...";
-          echo "Options:";
-          echo " -s SRT   OPTS part of KEYDEF given to the sort command (def.=$SRT)";
-          echo " -f       Whether to filter the prepended IDs (def.=false)";
-        } 1>&2;
+        echo "Description: Sorts by thread the output from run_parallel using the prepended IDs.";
+        echo "Usage: $FN [OPTIONS] < RUN_PARALLEL_OUTPUT";
+        echo "Options:";
+        echo " -s SRT   OPTS part of KEYDEF given to the sort command (def.=$SRT)";
+        echo " -f       Whether to filter the prepended IDs (def.=false)";
         return 1;
         ;;
     esac
@@ -87,9 +90,9 @@ run_parallel_output_sort [OPTION]... < *RUN_PARALLEL_OUTPUT*
 
 # DESCRIPTION
 
-It is a simple and versatile bash function for parallelizing the execution of
-commands or other bash functions. The main features that differentiates it
-from other popular tools for parallelizing are:
+run_parallel is a simple and versatile bash function for parallelizing the
+execution of commands or other bash functions. The main features that
+differentiates it from other popular tools for parallelizing are:
 
 - Bash functions can be parallelized without need to export them.
 - A single output for stdout and stdin that are prepended with the thread
@@ -181,16 +184,9 @@ element without either path or extension.
       -k | --keeptmp ) _rp_KEEPTMP="$2"; ;;
       -p | --prepend ) _rp_PREPEND="$2"; ;;
       -d | --tmpdir )  _rp_TMP="$2";     ;;
-      -v | --version ) echo "$Version: 2016-09-24$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
+      -v | --version ) echo "$Version: 2016-09-25$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
       -h | --help )    run_parallel_usage | sed "$_rp_FILT_USAGE"; return 0; ;;
       --markdown )     run_parallel_usage; return 0; ;;
-      --pandoc )
-        run_parallel_usage | sed -n '/^run_parallel - /{ s|^|% |; s| -|(1)|; p; }';
-        echo "% Mauricio Villegas <mauricio_ville@yahoo.com>";
-        echo '$Version: 2016-09-24$' | sed 's|.* |% |; s|\$$||;';
-        run_parallel_usage;
-        return 0;
-        ;;
       * )
         echo "$_rp_FN: error: unexpected input argument: $1" 1>&2;
         return 1;
@@ -528,11 +524,3 @@ element without either path or extension.
   _rp_cleanup;
   return "$_rp_NTHREADS";
 )}
-
-if [ "${BASH_SOURCE[0]}" = "$0" ]; then
-  [ "$1" = "--pandoc" ] &&
-    run_parallel "$@" &&
-    exit 0;
-  echo "run_parallel.inc.sh: error: script intended intended for sourcing, try: . run_parallel.inc.sh";
-  exit 1;
-fi
