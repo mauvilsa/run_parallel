@@ -4,7 +4,7 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Version: 2016-09-25$
+## @version $Version: 2016-09-26$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
 ##
@@ -34,7 +34,7 @@
 ##
 
 [ "${BASH_SOURCE[0]}" = "$0" ] &&
-  echo "run_parallel.inc.sh: error: script intended intended for sourcing, try: . run_parallel.inc.sh" &&
+  echo "run_parallel.inc.sh: error: script intended for sourcing, try: . run_parallel.inc.sh" &&
   exit 1;
 
 ### A fuction for sorting (by thread) the output of run_parallel ###
@@ -184,7 +184,7 @@ element without either path or extension.
       -k | --keeptmp ) _rp_KEEPTMP="$2"; ;;
       -p | --prepend ) _rp_PREPEND="$2"; ;;
       -d | --tmpdir )  _rp_TMP="$2";     ;;
-      -v | --version ) echo "$Version: 2016-09-25$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
+      -v | --version ) echo "$Version: 2016-09-26$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
       -h | --help )    run_parallel_usage | sed "$_rp_FILT_USAGE"; return 0; ;;
       --markdown )     run_parallel_usage; return 0; ;;
       * )
@@ -407,7 +407,10 @@ element without either path or extension.
   ### Cleanup function ###
   trap _rp_cleanup INT;
   _rp_cleanup () {
-    echo "::$_rp_FN::" | tee -a "$_rp_TMP"/{out,err}_* >/dev/null;
+    for _rp_THREAD in "${_rp_THREADS[@]}"; do
+      echo "::$_rp_FN::" >> "$_rp_TMP/out_$_rp_THREAD";
+      echo "::$_rp_FN::" >> "$_rp_TMP/err_$_rp_THREAD";
+    done
     local _rp_SLEEP="0.01";
     for _rp_n in $(seq 1 10); do
       ( ! ( ps -p "${_rp_PROCPID[0]}" || ps -p "${_rp_PROCPID[1]}" ) >/dev/null ) && break;
