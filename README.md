@@ -56,6 +56,10 @@ element without either path or extension.
 -p *(yes|no)*, \--prepend *(yes|no)*  
   Whether to prepend IDs to outputs (def.=yes)
 
+-e *(yes|no)*, \--outatend *(yes|no)*  
+  Whether stderr and stdout are printed at the end of execution
+  (def.=no)
+
 -k *(yes|no)*, \--keeptmp *(yes|no)*  
   Whether to keep temporal files (def.=no)
 
