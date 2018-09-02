@@ -11,6 +11,8 @@ add_custom_target( man1 ALL DEPENDS run_parallel.inc.sh README.md
   COMMAND rm man1.pdoc
   VERBATIM )
 
+set_property( DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES man1 )
+
 install( PROGRAMS run_parallel.inc.sh DESTINATION bin )
 install( DIRECTORY man1 DESTINATION share/man )
 

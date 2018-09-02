@@ -4,9 +4,10 @@
 ## A simple and versatile bash function for parallelizing the execution of
 ## commands or other bash functions.
 ##
-## @version $Version: 2016-09-27$
+## @version $Version: 2018-09-02$
 ## @author Mauricio Villegas <mauricio_ville@yahoo.com>
 ## @link https://github.com/mauvilsa/run_parallel
+## @license MIT License
 ##
 
 ##
@@ -190,7 +191,7 @@ element without either path or extension.
       -p | --prepend )  _rp_PREPEND="$2";  ;;
       -e | --outatend ) _rp_OUTATEND="$2"; ;;
       -d | --tmpdir )   _rp_TMP="$2";      ;;
-      -v | --version )  echo "$Version: 2016-09-27$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
+      -v | --version )  echo "$Version: 2018-09-02$" | sed 's|.* ||; s|\$$||;'; return 0; ;;
       -h | --help )     run_parallel_usage | sed "$_rp_FILT_USAGE"; return 0; ;;
       --markdown )      run_parallel_usage; return 0; ;;
       * )

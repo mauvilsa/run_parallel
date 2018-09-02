@@ -92,6 +92,9 @@ element without either path or extension.
 
 # COPYRIGHT
 
+@license MIT License
+
+
 The MIT License (MIT)
 
 Copyright (c) 2014-present, Mauricio Villegas <mauricio_ville@yahoo.com>
